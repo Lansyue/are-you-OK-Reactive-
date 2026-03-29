@@ -6,6 +6,7 @@ import {
   AreYouOKReactiveFactoryABI,
   CALLBACK_SENDER_ADDRESS,
   FACTORY_ADDRESS,
+  ORIGIN_CHAIN_ID,
   REACTIVE_CONTRACT_ADDRESS,
 } from "@/contracts/abi";
 import { CreateSwitchForm } from "./components/CreateSwitchForm";
@@ -66,6 +67,7 @@ export default function Home() {
   }, []);
 
   const { data: ownerSwitches, refetch: refetchOwnerSwitches } = useReadContract({
+    chainId: ORIGIN_CHAIN_ID,
     address: FACTORY_ADDRESS,
     abi: AreYouOKReactiveFactoryABI,
     functionName: "getOwnerSwitches",
@@ -76,6 +78,7 @@ export default function Home() {
   });
 
   const { data: beneficiarySwitches, refetch: refetchBeneficiarySwitches } = useReadContract({
+    chainId: ORIGIN_CHAIN_ID,
     address: FACTORY_ADDRESS,
     abi: AreYouOKReactiveFactoryABI,
     functionName: "getBeneficiarySwitches",
@@ -90,8 +93,8 @@ export default function Home() {
     refetchBeneficiarySwitches();
   }, [refetchBeneficiarySwitches, refetchOwnerSwitches]);
 
-  const mySwitches = ownerSwitches ?? [];
-  const inheritedSwitches = beneficiarySwitches ?? [];
+  const mySwitches = [...(ownerSwitches ?? [])].reverse();
+  const inheritedSwitches = [...(beneficiarySwitches ?? [])].reverse();
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,#133a39_0%,#07111b_40%,#02050c_100%)] px-4 pb-14 pt-8 text-white">

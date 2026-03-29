@@ -6,14 +6,17 @@ import { WagmiProvider, createConfig, http } from "wagmi";
 import { injected } from "wagmi/connectors";
 import { mainnet, sepolia } from "wagmi/chains";
 
+const sepoliaRpcUrl =
+  process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL ?? "https://ethereum-sepolia-rpc.publicnode.com";
+
 const config = createConfig({
   chains: [mainnet, sepolia],
   connectors: [injected()],
   transports: {
     [mainnet.id]: http(),
-    [sepolia.id]: http(),
+    [sepolia.id]: http(sepoliaRpcUrl),
   },
-  ssr: true,
+  ssr: false,
 });
 
 export function Providers({ children }: { children: ReactNode }) {

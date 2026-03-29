@@ -4,6 +4,9 @@ export const HEARTBEAT_INTERVAL_SECONDS = Number(
   process.env.NEXT_PUBLIC_HEARTBEAT_INTERVAL_SECONDS ?? "259200"
 );
 
+export const ORIGIN_CHAIN_ID = Number(process.env.NEXT_PUBLIC_ORIGIN_CHAIN_ID ?? "11155111");
+export const DESTINATION_CHAIN_ID = Number(process.env.NEXT_PUBLIC_DESTINATION_CHAIN_ID ?? "11155111");
+
 export const FACTORY_ADDRESS =
   (process.env.NEXT_PUBLIC_FACTORY_ADDRESS as `0x${string}` | undefined) ?? ZERO_ADDRESS;
 

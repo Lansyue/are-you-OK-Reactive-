@@ -7,7 +7,9 @@ import {
   AreYouOKReactiveControllerABI,
   AreYouOKReactiveFactoryABI,
   AreYouOKReactiveVaultABI,
+  DESTINATION_CHAIN_ID,
   FACTORY_ADDRESS,
+  ORIGIN_CHAIN_ID,
 } from "@/contracts/abi";
 
 interface SwitchCardProps {
@@ -69,8 +71,12 @@ function Countdown({ remainingSeconds }: { remainingSeconds: number }) {
 
 export function SwitchCard({ switchAddress, userAddress, role, onToast }: SwitchCardProps) {
   const [depositAmount, setDepositAmount] = useState("");
+  const [isAutoSyncing, setIsAutoSyncing] = useState(false);
+  const [heartbeatCooldown, setHeartbeatCooldown] = useState(0);
+  const hasValidDepositAmount = !!depositAmount && Number(depositAmount) > 0;
 
   const { data: pair } = useReadContract({
+    chainId: ORIGIN_CHAIN_ID,
     address: FACTORY_ADDRESS,
     abi: AreYouOKReactiveFactoryABI,
     functionName: "getSwitchPair",
@@ -80,32 +86,48 @@ export function SwitchCard({ switchAddress, userAddress, role, onToast }: Switch
     },
   });
 
-  const controllerAddress = pair?.controller;
-  const ownerAddress = pair?.owner;
-  const beneficiaryAddress = pair?.beneficiary;
+  const controllerAddress = (pair?.controller ?? pair?.[1]) as `0x${string}` | undefined;
+  const ownerAddress = (pair?.owner ?? pair?.[2]) as `0x${string}` | undefined;
+  const beneficiaryAddress = (pair?.beneficiary ?? pair?.[3]) as `0x${string}` | undefined;
 
   const { data: balance, refetch: refetchBalance } = useReadContract({
+    chainId: DESTINATION_CHAIN_ID,
     address: switchAddress,
     abi: AreYouOKReactiveVaultABI,
     functionName: "getBalance",
+    query: {
+      refetchInterval: isAutoSyncing ? 5000 : false,
+    },
   });
 
   const { data: remainingTime, refetch: refetchRemainingTime } = useReadContract({
+    chainId: DESTINATION_CHAIN_ID,
     address: switchAddress,
     abi: AreYouOKReactiveVaultABI,
     functionName: "getRemainingTime",
+    query: {
+      refetchInterval: isAutoSyncing ? 5000 : false,
+    },
   });
 
   const { data: isExpired, refetch: refetchIsExpired } = useReadContract({
+    chainId: DESTINATION_CHAIN_ID,
     address: switchAddress,
     abi: AreYouOKReactiveVaultABI,
     functionName: "isExpired",
+    query: {
+      refetchInterval: isAutoSyncing ? 5000 : false,
+    },
   });
 
   const { data: settled, refetch: refetchSettled } = useReadContract({
+    chainId: DESTINATION_CHAIN_ID,
     address: switchAddress,
     abi: AreYouOKReactiveVaultABI,
     functionName: "settled",
+    query: {
+      refetchInterval: isAutoSyncing ? 5000 : false,
+    },
   });
 
   const { writeContract, data: txHash } = useWriteContract();
@@ -116,6 +138,7 @@ export function SwitchCard({ switchAddress, userAddress, role, onToast }: Switch
       return;
     }
 
+    setIsAutoSyncing(true);
     setDepositAmount("");
     refetchBalance();
     refetchRemainingTime();
@@ -123,6 +146,30 @@ export function SwitchCard({ switchAddress, userAddress, role, onToast }: Switch
     refetchSettled();
     onToast("Transaction confirmed. Cross-chain callbacks may take a moment to sync.", "success");
   }, [isSuccess, onToast, refetchBalance, refetchIsExpired, refetchRemainingTime, refetchSettled]);
+
+  useEffect(() => {
+    if (!isAutoSyncing) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setIsAutoSyncing(false);
+    }, 60_000);
+
+    return () => window.clearTimeout(timer);
+  }, [isAutoSyncing]);
+
+  useEffect(() => {
+    if (heartbeatCooldown <= 0) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      setHeartbeatCooldown((current) => Math.max(0, current - 1));
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [heartbeatCooldown]);
 
   const isOwner = !!ownerAddress && ownerAddress.toLowerCase() === userAddress.toLowerCase();
   const isBeneficiary = !!beneficiaryAddress && beneficiaryAddress.toLowerCase() === userAddress.toLowerCase();
@@ -134,6 +181,7 @@ export function SwitchCard({ switchAddress, userAddress, role, onToast }: Switch
     }
 
     try {
+      setHeartbeatCooldown(60);
       onToast("Sending a heartbeat to the origin controller...", "info");
       writeContract({
         address: controllerAddress,
@@ -215,10 +263,14 @@ export function SwitchCard({ switchAddress, userAddress, role, onToast }: Switch
         {isOwner && !settled && (
           <button
             onClick={handleCheckIn}
-            disabled={isConfirming}
+            disabled={isConfirming || heartbeatCooldown > 0}
             className="w-full rounded-2xl bg-gradient-to-r from-emerald-400 to-teal-400 px-4 py-3 font-semibold text-slate-950 transition hover:brightness-110 disabled:opacity-60"
           >
-            {isConfirming ? "Processing..." : "Send Heartbeat"}
+            {isConfirming
+              ? "Processing..."
+              : heartbeatCooldown > 0
+                ? `Send Heartbeat (${heartbeatCooldown}s)`
+                : "Send Heartbeat"}
           </button>
         )}
 
@@ -244,12 +296,15 @@ export function SwitchCard({ switchAddress, userAddress, role, onToast }: Switch
           />
           <button
             onClick={handleDeposit}
-            disabled={isConfirming}
-            className="rounded-2xl border border-cyan-300/40 px-4 py-3 text-sm font-semibold text-cyan-200 transition hover:bg-cyan-300/10 disabled:opacity-60"
+            disabled={isConfirming || !hasValidDepositAmount}
+            className="rounded-2xl border border-cyan-300/40 px-4 py-3 text-sm font-semibold text-cyan-200 transition hover:bg-cyan-300/10 disabled:cursor-not-allowed disabled:opacity-40"
           >
             Deposit
           </button>
         </div>
+        {!hasValidDepositAmount && (
+          <p className="text-xs text-slate-500">Enter a deposit amount greater than 0 ETH to enable the button.</p>
+        )}
       </div>
     </div>
   );
