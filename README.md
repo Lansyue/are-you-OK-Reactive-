@@ -4,6 +4,10 @@
 
 The owner checks in on an Origin controller contract. If the owner stops checking in before the deadline, the beneficiary reports the missed heartbeat on the Origin chain, and the Reactive Contract automatically triggers the Destination vault callback to release the escrowed ETH.
 
+## Demo Video
+
+- Watch the recorded demo: [assets/demo/are-you-ok-demo.mp4](./assets/demo/are-you-ok-demo.mp4)
+
 ## Why This Project Exists
 
 Traditional smart contracts are passive. Even if a contract can determine that a user has missed a deadline, someone still needs to watch events and manually submit the next transaction.
