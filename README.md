@@ -1,24 +1,208 @@
-这是一个名为 "Are You OK?" 的 DApp ，也可以称之为链上“死了么”
+# Are You OK? | Reactive Dead Man's Switch
 
-这个dapp部署在ETH上，在主页面可以输入用户和同伴的钱包地址，用户需要每天在app上打卡，只要连续三天没有打卡，就会自动判定为用户死亡，把钱包里的钱转给同伴。
-<img width="1915" height="854" alt="image" src="https://github.com/user-attachments/assets/607e7cef-782f-4e1d-a906-4aad4c434a26" />
-<img width="1895" height="890" alt="image" src="https://github.com/user-attachments/assets/c0e4359b-4045-44dd-9e80-832db1a15951" />
-<img width="1891" height="896" alt="image" src="https://github.com/user-attachments/assets/eb70adfb-a1f4-4bb8-93aa-8b168043f6ad" />
-<img width="1584" height="900" alt="image" src="https://github.com/user-attachments/assets/14617e55-9f6b-4786-903a-9ff5ef3e07f2" />
+`Are You OK?` is a Reactive Network dead-man's-switch dApp.
 
-注：本dapp由0x来财妹妹在lxdao和ethpanda举办的web3实习计划中的mini分享会中，为展示opencoede＋oh-my-opencode的作用现场制作的dapp，ui较为粗糙，介意者可自行更改，内容仅供娱乐。
+The owner checks in on an Origin controller contract. If the owner stops checking in before the deadline, the beneficiary reports the missed heartbeat on the Origin chain, and the Reactive Contract automatically triggers the Destination vault callback to release the escrowed ETH.
 
-用户下载代码后,按以下步骤运行:
+## Why This Project Exists
 
-1. 克隆仓库
-git clone https://github.com/Lansyue/-are-you-OK-.git
-cd -are-you-OK-
+Traditional smart contracts are passive. Even if a contract can determine that a user has missed a deadline, someone still needs to watch events and manually submit the next transaction.
 
-3. 安装依赖
+This project uses Reactive Network to remove that manual relay step.
+
+Without Reactive Network:
+
+1. Someone must monitor the owner's heartbeat events off-chain.
+2. Someone must decide when the heartbeat has expired.
+3. Someone must manually trigger the payout action on the destination contract.
+
+With Reactive Network:
+
+1. The Origin contract emits heartbeat-related events.
+2. The Reactive contract listens for those EVM events.
+3. The Reactive contract automatically emits the callback instruction.
+4. The Destination contract receives the callback and updates state or releases inheritance.
+
+That event-driven automation is the core reason this project fits the hackathon requirement.
+
+## Architecture
+
+### 1. Origin Contract
+
+File:
+- `contracts/reactive/AreYouOKReactiveController.sol`
+
+Responsibility:
+- stores the owner's heartbeat
+- emits `HeartbeatRecorded` when the owner checks in
+- emits `MissedHeartbeatReported` when the beneficiary reports inactivity
+
+### 2. Reactive Contract
+
+File:
+- `contracts/reactive/AreYouOKReactive.sol`
+- `contracts/reactive/ReactiveNetwork.sol`
+
+Responsibility:
+- subscribes to Origin events on Reactive Network
+- interprets heartbeat and missed-heartbeat logs
+- emits callback instructions toward the Destination vault
+
+### 3. Destination Contract
+
+File:
+- `contracts/reactive/AreYouOKReactiveVault.sol`
+
+Responsibility:
+- escrows ETH
+- accepts callback execution only from the official callback proxy
+- verifies the authorized RVM id before syncing heartbeat or releasing inheritance
+
+### 4. Factory Contract
+
+File:
+- `contracts/reactive/AreYouOKReactiveFactory.sol`
+
+Responsibility:
+- deploys controller + vault pairs for each user
+- keeps owner and beneficiary indexes for the frontend
+
+## Contract Files
+
+- `contracts/reactive/ReactivePrimitives.sol`
+- `contracts/reactive/ReactiveNetwork.sol`
+- `contracts/reactive/AreYouOKReactive.sol`
+- `contracts/reactive/AreYouOKReactiveController.sol`
+- `contracts/reactive/AreYouOKReactiveVault.sol`
+- `contracts/reactive/AreYouOKReactiveFactory.sol`
+
+## Frontend
+
+The frontend has been adapted to the Reactive version of the protocol and now points to the deployed Sepolia / Lasna demo addresses through `.env.local`:
+
+- `app/page.tsx`
+- `app/components/CreateSwitchForm.tsx`
+- `app/components/SwitchCard.tsx`
+- `contracts/abi.ts`
+
+The UI now explains and interacts with the Reactive flow instead of the old single-contract assumption.
+
+## Deployment Files
+
+- `script/deploy-reactive-are-you-ok.ps1`
+- `.env.example`
+- `.env.deploy.example`
+- `foundry.toml`
+
+## Submission Materials
+
+- `docs/DEPLOYED_ADDRESSES.template.md`
+- `docs/WORKFLOW_AND_TX_HASHES.template.md`
+
+These are now filled with the real deployed addresses and end-to-end transaction hashes used for the demo flow.
+
+## End-To-End Workflow
+
+### Deployment Phase
+
+1. Deploy `AreYouOKReactive` on Reactive Network.
+2. Deploy `AreYouOKReactiveFactory`.
+3. Create a switch pair from the factory.
+4. Configure subscription for the created controller if your deployment flow requires manual subscription setup.
+
+### Runtime Phase
+
+1. The owner creates a switch pair and optionally deposits ETH into the vault.
+2. The owner periodically calls `checkIn()` on the Origin controller.
+3. The Origin contract emits `HeartbeatRecorded`.
+4. The Reactive contract receives the event and emits a callback for `syncHeartbeat(...)`.
+5. The Destination vault updates `lastCheckIn` and `deadline`.
+6. If the owner stops checking in and the deadline passes, the beneficiary calls `reportMissedHeartbeat()`.
+7. The Origin contract emits `MissedHeartbeatReported`.
+8. The Reactive contract receives the event and emits a callback for `releaseInheritance(...)`.
+9. The Destination vault transfers ETH to the beneficiary.
+
+## Hackathon Checklist
+
+This repository now covers the main required submission items:
+
+- reactive contract code
+- destination contract code
+- origin contract code
+- deployment script scaffold
+- problem and solution explanation
+- written workflow explanation
+- deployed-address template
+- transaction-hash template
+
+Before final submission, you still need to:
+
+1. publish the final public GitHub repository
+2. record and upload the demo video under 5 minutes
+3. paste the repository link and team information into the submission form
+
+## Local Development
+
+```bash
 npm install
-这会根据 package.json 自动下载并安装所有需要的依赖到 node_modules/ 目录。
-
-5. 运行开发服务器
 npm run dev
+```
 
-启动后,在浏览器访问 http://localhost:3000 就能看到你的应用了。
+Then open `http://127.0.0.1:3001` if you run the dev server on port `3001`.
+
+## How to Use
+
+1. Connect your wallet.
+2. Set a beneficiary address and create a new switch pair.
+3. Optionally deposit ETH into the destination vault.
+4. As the owner, keep the switch alive by sending regular heartbeats.
+5. If the heartbeat window expires, the beneficiary can report the missed heartbeat on the origin chain.
+6. The Reactive contract forwards the callback automatically.
+7. The Destination vault syncs the heartbeat or releases the inheritance automatically.
+
+## Deployment Setup
+
+1. Install Foundry so `forge` and `cast` are available.
+2. Copy `.env.deploy.example` to `.env.deploy.local`.
+3. Fill in:
+   - `PRIVATE_KEY`
+   - `REACTIVE_RPC_URL`
+   - `REACTIVE_SERVICE_ADDRESS`
+   - `EXECUTION_RPC_URL`
+   - `ORIGIN_CHAIN_ID`
+   - `DESTINATION_CHAIN_ID`
+4. Deploy `AreYouOKReactive` on Reactive Network.
+5. Deploy `AreYouOKReactiveFactory` on the execution chain with the callback sender and authorized RVM id.
+6. Copy the deployed addresses into `.env.local` for the frontend.
+7. Restart the app and verify the UI points to the new contracts.
+
+## Environment Variables
+
+Copy `.env.example` and replace the placeholder values:
+
+```bash
+NEXT_PUBLIC_FACTORY_ADDRESS=0x...
+NEXT_PUBLIC_REACTIVE_CONTRACT=0x...
+NEXT_PUBLIC_CALLBACK_SENDER=0x...
+NEXT_PUBLIC_ORIGIN_CHAIN_ID=11155111
+NEXT_PUBLIC_DESTINATION_CHAIN_ID=11155111
+NEXT_PUBLIC_HEARTBEAT_INTERVAL_SECONDS=259200
+```
+
+## Demo Script Suggestion
+
+For the 5-minute demo video:
+
+1. Show the architecture slide or README summary.
+2. Show the deployed contract addresses.
+3. Create one switch pair.
+4. Send one heartbeat from the owner.
+5. Show the Reactive callback and destination sync.
+6. Wait or simulate expiry.
+7. Report missed heartbeat from the beneficiary.
+8. Show the Reactive callback and inheritance release.
+9. Show the three categories of tx hashes: Origin, Reactive, Destination.
+
+## Notes
+
+This repo started as a simpler dead-man's-switch demo and was adapted into a real Reactive Network submission. The current codebase includes a successful end-to-end Origin / Reactive / Destination flow, documented deployed addresses, and recorded transaction hashes.

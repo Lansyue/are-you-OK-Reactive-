@@ -3,8 +3,8 @@ import { Providers } from "./providers";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "🙋‍♂️ Are You OK? - 雷军问候模拟器",
-  description: "3天不打卡，你的 ETH 就归别人了",
+  title: "Are You OK? | Reactive Dead Man's Switch",
+  description: "Origin heartbeat, Reactive callbacks, destination inheritance vault",
 };
 
 export default function RootLayout({
