@@ -22,11 +22,11 @@ The owner checks in on an Origin controller contract. If the owner stops checkin
 
 The name of this project is inspired by the famous "Are you OK?" meme associated with Lei Jun. We liked it because it is playful, memorable, and unexpectedly perfect for the product itself.
 
-A dead-man's-switch is really asking the same question every day: are you still okay, and are you still checking in?
+**A dead-man's-switch is really asking the same question every day: are you still okay, and are you still checking in?**
 
-That is why the name works so well. It starts as a joke, but it maps directly to the core product logic. If the owner keeps checking in, everything is fine. If the owner stops checking in, the protocol reacts automatically.
+**That is why the name works so well.** It starts as a joke, but it maps directly to the core product logic. If the owner keeps checking in, everything is fine. If the owner stops checking in, the protocol reacts automatically.
 
-In that sense, this project asks a simple but meaningful question: are you okay today? If yes, send a heartbeat. If not, let the protocol handle what comes next.
+**In that sense, this project asks a simple but meaningful question: are you okay today?** If yes, send a heartbeat. If not, let the protocol handle what comes next.
 
 ## Why This Project Exists
 
