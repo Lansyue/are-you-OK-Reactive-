@@ -8,6 +8,26 @@ The owner checks in on an Origin controller contract. If the owner stops checkin
 
 - Watch the recorded demo: [assets/demo/are-you-ok-demo.mp4](./assets/demo/are-you-ok-demo.mp4)
 
+## Demo Screenshots
+
+### Landing Page
+
+![Are You OK landing page](./assets/screenshots/home.png)
+
+### Connected Wallet View
+
+![Are You OK connected wallet view](./assets/screenshots/connected.png)
+
+## Why the Name "Are You OK?" Is Memorable
+
+The name of this project is inspired by the famous "Are you OK?" meme associated with Lei Jun. We liked it because it is playful, memorable, and unexpectedly perfect for the product itself.
+
+A dead-man's-switch is really asking the same question every day: are you still okay, and are you still checking in?
+
+That is why the name works so well. It starts as a joke, but it maps directly to the core product logic. If the owner keeps checking in, everything is fine. If the owner stops checking in, the protocol reacts automatically.
+
+In that sense, this project asks a simple but meaningful question: are you okay today? If yes, send a heartbeat. If not, let the protocol handle what comes next.
+
 ## Why This Project Exists
 
 Traditional smart contracts are passive. Even if a contract can determine that a user has missed a deadline, someone still needs to watch events and manually submit the next transaction.
